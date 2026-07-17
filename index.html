@@ -383,46 +383,19 @@ const startScreen = document.getElementById('startScreen');
 const scanHint = document.getElementById('scanHint');
 const zoomHint = document.getElementById('zoomHint');
 
-/* ===================== DIAGNOSIS ===================== */
-const dbg = document.createElement('div');
-dbg.style.cssText = 'position:fixed;top:60px;left:10px;right:10px;z-index:50;background:rgba(0,0,0,.75);color:#0f0;font:11px monospace;padding:8px;border-radius:8px;max-height:35vh;overflow:auto;white-space:pre-wrap;';
-document.body.appendChild(dbg);
-function log(m){ dbg.textContent += m + '\n'; }
-window.onerror = (msg,src,line) => { log('❌ JS: ' + msg + ' (baris ' + line + ')'); };
-
-sceneEl.addEventListener('arReady', () => {
-  log('✅ arReady — MindAR sedia');
-  // Semak elemen video kamera selepas 2 saat
-  setTimeout(() => {
-    const v = document.querySelector('video');
-    if (!v) { log('❌ Tiada elemen <video> — kamera tak dimulakan'); return; }
-    log('📷 video: ' + v.videoWidth + 'x' + v.videoHeight +
-        ' | paused=' + v.paused + ' | readyState=' + v.readyState);
-    const cs = getComputedStyle(v);
-    log('   display=' + cs.display + ' visibility=' + cs.visibility +
-        ' | saiz paparan=' + v.offsetWidth + 'x' + v.offsetHeight + ' zIndex=' + cs.zIndex);
-    if (v.videoWidth === 0) log('❌ Kamera tiada isyarat (0x0) — izin/peranti bermasalah');
-    if (v.offsetWidth === 0) log('❌ Video wujud tapi saiz paparan 0 — masalah CSS');
-  }, 2000);
-});
-sceneEl.addEventListener('arError', (e) => {
-  log('❌ arError: ' + JSON.stringify(e.detail || 'tiada detail'));
-});
-
 document.getElementById('startBtn').addEventListener('click', async () => {
   startScreen.style.display = 'none';
   scanHint.style.display = 'block';
-  log('▶ Mula ditekan');
-  log('Browser: ' + navigator.userAgent.slice(0, 80));
   try {
     const semak = await fetch('./targets.mind', { method:'HEAD' });
-    log((semak.ok ? '✅' : '❌') + ' targets.mind: HTTP ' + semak.status);
-    if (!semak.ok) throw new Error('targets.mind tidak dijumpai');
-    log('⏳ Memulakan MindAR...');
+    if (!semak.ok) throw new Error('targets.mind tidak dijumpai (HTTP ' + semak.status + ')');
     await sceneEl.systems['mindar-image-system'].start();
-    log('✅ start() selesai tanpa ralat');
   } catch (err) {
-    log('❌ ' + (err.name || 'Ralat') + ': ' + err.message);
+    scanHint.style.display = 'none';
+    startScreen.style.display = 'flex';
+    startScreen.querySelector('.sub').innerHTML =
+      '⚠️ <b>Ralat:</b> ' + err.message +
+      '<br><br>Pastikan akses kamera dibenarkan dan buka dalam Chrome/Safari sebenar.';
   }
 });
 
