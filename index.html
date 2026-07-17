@@ -328,6 +328,20 @@ const infoDesc = document.getElementById('infoDesc');
 const audioBtn = document.getElementById('audioBtn');
 let audioSemasa = null, lokSemasa = null;
 
+// Pilih suara terbaik: Melayu > Indonesia (sebutan hampir sama) > lalai
+let suaraTTS = null;
+function pilihSuara(){
+  const vs = speechSynthesis.getVoices();
+  suaraTTS = vs.find(v => v.lang && v.lang.toLowerCase().startsWith('ms'))
+          || vs.find(v => v.lang && v.lang.toLowerCase().startsWith('id'))
+          || null;
+}
+if ('speechSynthesis' in window) {
+  pilihSuara();
+  speechSynthesis.onvoiceschanged = pilihSuara;
+}
+let ttsWatchdog = null;
+
 function bukaPanel(lok){
   lokSemasa = lok;
   infoTitle.textContent = lok.nama;
@@ -343,16 +357,27 @@ function mainAudio(lok){
     audioSemasa.play().catch(()=>{});
     audioBtn.textContent = "⏸ Henti Audio";
   } else if ('speechSynthesis' in window) {
-    const ucap = new SpeechSynthesisUtterance(lok.nama + ". " + lok.info);
-    ucap.lang = 'ms-MY';
-    ucap.rate = 0.95;
-    speechSynthesis.speak(ucap);
+    // Jeda kecil selepas cancel() — elak pepijat senyap Safari/iOS
+    setTimeout(() => {
+      const ucap = new SpeechSynthesisUtterance(lok.nama + ". " + lok.info);
+      if (suaraTTS) { ucap.voice = suaraTTS; ucap.lang = suaraTTS.lang; }
+      else ucap.lang = 'ms-MY';
+      ucap.rate = 0.95;
+      speechSynthesis.speak(ucap);
+      // Watchdog: iOS/Chrome kadang pause TTS panjang — paksa sambung
+      clearInterval(ttsWatchdog);
+      ttsWatchdog = setInterval(() => {
+        if (!speechSynthesis.speaking) { clearInterval(ttsWatchdog); return; }
+        if (speechSynthesis.paused) speechSynthesis.resume();
+      }, 3000);
+    }, 100);
     audioBtn.textContent = "⏸ Henti Audio";
   }
 }
 
 function hentiAudio(){
   if (audioSemasa){ audioSemasa.pause(); audioSemasa = null; }
+  clearInterval(ttsWatchdog);
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   audioBtn.textContent = "🔊 Dengar Sejarah";
 }
@@ -571,6 +596,10 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   scanHint.style.display = 'block';
   document.getElementById('resetBtn').style.display = 'block';
   document.getElementById('snapBtn').style.display = 'block';
+  // Buka kunci TTS iOS dengan ucapan senyap semasa gerak pengguna
+  if ('speechSynthesis' in window) {
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch(e){}
+  }
   document.getElementById('recBtn').style.display = 'block';
   try {
     const semak = await fetch('./targets.mind', { method:'HEAD' });
