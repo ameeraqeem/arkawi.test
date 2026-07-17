@@ -385,17 +385,32 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   startScreen.style.display = 'none';
   scanHint.style.display = 'block';
   try {
-    // Semak dulu targets.mind wujud sebelum mula
+    // Semakan 1: targets.mind wujud
     const semak = await fetch('./targets.mind', { method:'HEAD' });
     if (!semak.ok) throw new Error('targets.mind tidak dijumpai (HTTP ' + semak.status + ')');
+
+    // Semakan 2: kamera boleh diakses (minta izin secara eksplisit)
+    try {
+      const ujian = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      ujian.getTracks().forEach(t => t.stop()); // lepaskan, MindAR akan ambil semula
+    } catch (camErr) {
+      let sebab = camErr.message;
+      if (camErr.name === 'NotAllowedError')
+        sebab = 'Akses kamera DITOLAK. Tekan ikon 🔒 di sebelah alamat web → Permissions/Kebenaran → Camera → Allow, kemudian muat semula halaman.';
+      else if (camErr.name === 'NotFoundError')
+        sebab = 'Tiada kamera dikesan pada peranti ini.';
+      else if (camErr.name === 'NotReadableError')
+        sebab = 'Kamera sedang digunakan oleh aplikasi lain. Tutup semua app kamera/video call dan cuba semula.';
+      else if (camErr.name === 'SecurityError')
+        sebab = 'Browser ini menyekat kamera. Buka halaman ini dalam Chrome atau Safari sebenar — bukan browser dalam WhatsApp/Telegram/Facebook.';
+      throw new Error(sebab);
+    }
+
     await sceneEl.systems['mindar-image-system'].start();
   } catch (err) {
     scanHint.style.display = 'none';
     startScreen.style.display = 'flex';
-    startScreen.querySelector('.sub').innerHTML =
-      '⚠️ <b>Ralat:</b> ' + err.message +
-      '<br><br>Semakan: (1) Pastikan fail <b>targets.mind</b> berada dalam folder yang sama dengan index.html. ' +
-      '(2) Benarkan akses kamera. (3) Buka dalam Chrome/Safari, bukan browser dalam WhatsApp/Telegram.';
+    startScreen.querySelector('.sub').innerHTML = '⚠️ <b>Ralat:</b> ' + err.message;
   }
 });
 
