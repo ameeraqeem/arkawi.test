@@ -76,6 +76,22 @@
 </div>
 
 <div id="scanHint">📷 Halakan kamera ke poster...</div>
+<button id="snapBtn" title="Tangkap Gambar" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:40;width:64px;height:64px;border-radius:50%;border:4px solid rgba(255,255,255,.85);background:rgba(255,209,102,.92);font-size:1.6rem;cursor:pointer;display:none;box-shadow:0 4px 18px rgba(0,0,0,.4);">📸</button>
+
+<button id="recBtn" title="Rakam Video" style="position:fixed;bottom:32px;left:calc(50% + 58px);z-index:40;width:50px;height:50px;border-radius:50%;border:3px solid rgba(255,255,255,.85);background:rgba(230,57,70,.92);font-size:1.1rem;cursor:pointer;display:none;box-shadow:0 4px 14px rgba(0,0,0,.4);">🎥</button>
+<div id="recTimer" style="position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(230,57,70,.9);color:#fff;padding:6px 16px;border-radius:20px;font-size:.85rem;font-weight:700;display:none;">● 0:00</div>
+
+<div id="snapModal" style="position:fixed;inset:0;z-index:60;background:rgba(3,37,31,.95);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <img id="snapImg" style="max-width:92%;max-height:62vh;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5);display:none;" alt="Hasil tangkapan">
+  <video id="snapVid" controls playsinline style="max-width:92%;max-height:62vh;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5);display:none;"></video>
+  <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
+    <button id="snapShare" style="background:#ffd166;color:#03251f;border:none;border-radius:30px;padding:12px 26px;font-weight:700;font-size:.95rem;cursor:pointer;">📤 Kongsi / Simpan</button>
+    <button id="snapClose" style="background:rgba(255,255,255,.12);color:#eafff5;border:1px solid rgba(255,255,255,.25);border-radius:30px;padding:12px 26px;font-size:.95rem;cursor:pointer;">✕ Tutup</button>
+  </div>
+  <p style="color:rgba(234,255,245,.6);font-size:.75rem;margin-top:12px;text-align:center;">Atau tekan-lama gambar untuk simpan terus ke galeri</p>
+</div>
+
+<button id="resetBtn" title="Set Semula" style="position:fixed;top:14px;right:14px;z-index:40;width:40px;height:40px;border-radius:50%;border:none;background:rgba(3,37,31,.75);color:#ffd166;font-size:1.2rem;cursor:pointer;display:none;backdrop-filter:blur(6px);">⟳</button>
 <div id="zoomHint">👌 Cubit skrin untuk besar / kecilkan</div>
 
 <div id="infoPanel">
@@ -88,7 +104,7 @@
 <!-- PENTING: gantikan targets.mind dengan fail yang anda compile dari poster -->
 <a-scene id="arScene"
   mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
-  color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: true"
+  color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: true; preserveDrawingBuffer: true"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
   <a-assets id="assetPool" timeout="30000"></a-assets>
@@ -351,6 +367,149 @@ document.getElementById('closeBtn').addEventListener('click', () => {
   hentiAudio();
 });
 
+/* ===================== TANGKAP GAMBAR ===================== */
+const snapBtn = document.getElementById('snapBtn');
+const snapModal = document.getElementById('snapModal');
+const snapImg = document.getElementById('snapImg');
+let snapBlob = null;
+
+snapBtn.addEventListener('click', () => {
+  const video = document.querySelector('video');
+  const sceneCanvas = sceneEl.canvas;
+  if (!video || !sceneCanvas) return;
+
+  const W = sceneCanvas.width, H = sceneCanvas.height;
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  const ctx = out.getContext('2d');
+
+  // Lukis suapan kamera (potong gaya "cover" ikut nisbah skrin)
+  const vA = video.videoWidth / video.videoHeight, cA = W / H;
+  let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
+  if (vA > cA) { sw = video.videoHeight * cA; sx = (video.videoWidth - sw) / 2; }
+  else { sh = video.videoWidth / cA; sy = (video.videoHeight - sh) / 2; }
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H);
+
+  // Lukis lapisan AR di atasnya
+  ctx.drawImage(sceneCanvas, 0, 0, W, H);
+
+  // Tera jenama di bawah
+  const barH = Math.round(H * 0.055);
+  ctx.fillStyle = 'rgba(3,37,31,0.72)';
+  ctx.fillRect(0, H - barH, W, barH);
+  ctx.fillStyle = '#ffd166';
+  ctx.font = `600 ${Math.round(barH*0.45)}px sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText('  ARkawi @ BayasGeoHub', 0, H - barH/2);
+  ctx.fillStyle = 'rgba(234,255,245,0.85)';
+  ctx.textAlign = 'right';
+  ctx.fillText('Kelab Geopark SK Bayas  ', W, H - barH/2);
+  ctx.textAlign = 'left';
+
+  out.toBlob(blob => {
+    snapBlob = blob; snapJenis = 'foto';
+    snapImg.src = URL.createObjectURL(blob);
+    snapImg.style.display = 'block';
+    document.getElementById('snapVid').style.display = 'none';
+    snapModal.style.display = 'flex';
+  }, 'image/jpeg', 0.92);
+});
+
+/* ===================== RAKAM VIDEO ===================== */
+const recBtn = document.getElementById('recBtn');
+const recTimer = document.getElementById('recTimer');
+const snapVid = document.getElementById('snapVid');
+let snapJenis = 'foto';
+let perakam = null, klip = [], gelungRakam = null, masaMula = 0, jamId = null;
+
+recBtn.addEventListener('click', () => {
+  if (perakam && perakam.state === 'recording') { hentiRakam(); return; }
+
+  const video = document.querySelector('video');
+  const sceneCanvas = sceneEl.canvas;
+  if (!video || !sceneCanvas) return;
+
+  // Kanvas komposit: kamera + AR + tera, dilukis setiap bingkai
+  const W = sceneCanvas.width, H = sceneCanvas.height;
+  const komp = document.createElement('canvas');
+  komp.width = W; komp.height = H;
+  const ctx = komp.getContext('2d');
+  const barH = Math.round(H * 0.055);
+
+  function lukis(){
+    const vA = video.videoWidth / video.videoHeight, cA = W / H;
+    let sx=0, sy=0, sw=video.videoWidth, sh=video.videoHeight;
+    if (vA > cA) { sw = video.videoHeight * cA; sx = (video.videoWidth - sw) / 2; }
+    else { sh = video.videoWidth / cA; sy = (video.videoHeight - sh) / 2; }
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.drawImage(sceneCanvas, 0, 0, W, H);
+    ctx.fillStyle = 'rgba(3,37,31,0.72)'; ctx.fillRect(0, H - barH, W, barH);
+    ctx.fillStyle = '#ffd166'; ctx.font = `600 ${Math.round(barH*0.45)}px sans-serif`;
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText('  ARkawi @ BayasGeoHub', 0, H - barH/2);
+    ctx.fillStyle = 'rgba(234,255,245,0.85)'; ctx.textAlign = 'right';
+    ctx.fillText('Kelab Geopark SK Bayas  ', W, H - barH/2);
+    ctx.textAlign = 'left';
+    gelungRakam = requestAnimationFrame(lukis);
+  }
+  lukis();
+
+  const strim = komp.captureStream(30);
+  const jenis = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm']
+    .find(t => MediaRecorder.isTypeSupported(t)) || '';
+  perakam = new MediaRecorder(strim, jenis ? { mimeType: jenis } : {});
+  klip = [];
+  perakam.ondataavailable = e => { if (e.data.size) klip.push(e.data); };
+  perakam.onstop = () => {
+    cancelAnimationFrame(gelungRakam);
+    const blob = new Blob(klip, { type: perakam.mimeType || 'video/webm' });
+    snapBlob = blob; snapJenis = 'video';
+    snapVid.src = URL.createObjectURL(blob);
+    snapVid.style.display = 'block';
+    snapImg.style.display = 'none';
+    snapModal.style.display = 'flex';
+  };
+  perakam.start();
+
+  // UI rakaman
+  recBtn.textContent = '⏹';
+  recBtn.style.background = 'rgba(255,255,255,.92)';
+  recTimer.style.display = 'block';
+  masaMula = Date.now();
+  jamId = setInterval(() => {
+    const s = Math.floor((Date.now() - masaMula) / 1000);
+    recTimer.textContent = '\u25cf ' + Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+    if (s >= 60) hentiRakam(); // had 1 minit supaya fail tak terlalu besar
+  }, 500);
+});
+
+function hentiRakam(){
+  if (perakam && perakam.state === 'recording') perakam.stop();
+  clearInterval(jamId);
+  recTimer.style.display = 'none';
+  recBtn.textContent = '\ud83c\udfa5';
+  recBtn.style.background = 'rgba(230,57,70,.92)';
+}
+
+document.getElementById('snapShare').addEventListener('click', async () => {
+  if (!snapBlob) return;
+  const ext = snapJenis === 'video' ? (snapBlob.type.includes('mp4') ? 'mp4' : 'webm') : 'jpg';
+  const fail = new File([snapBlob], 'arkawi-bayasgeohub.' + ext, { type: snapBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [fail] })) {
+    try { await navigator.share({ files: [fail], title: 'ARkawi @ BayasGeoHub' }); } catch(e) {}
+  } else {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(snapBlob);
+    a.download = fail.name;
+    a.click();
+  }
+});
+
+document.getElementById('snapClose').addEventListener('click', () => {
+  snapModal.style.display = 'none';
+  snapVid.pause();
+});
+
 /* ===================== PINCH ZOOM ===================== */
 let jarakMula = null, skalaMula = 1, skalaSemasa = 1;
 const MIN_SKALA = 0.5, MAX_SKALA = 3.5;
@@ -383,9 +542,14 @@ const startScreen = document.getElementById('startScreen');
 const scanHint = document.getElementById('scanHint');
 const zoomHint = document.getElementById('zoomHint');
 
+document.getElementById('resetBtn').addEventListener('click', () => location.reload());
+
 document.getElementById('startBtn').addEventListener('click', async () => {
   startScreen.style.display = 'none';
   scanHint.style.display = 'block';
+  document.getElementById('resetBtn').style.display = 'block';
+  document.getElementById('snapBtn').style.display = 'block';
+  document.getElementById('recBtn').style.display = 'block';
   try {
     const semak = await fetch('./targets.mind', { method:'HEAD' });
     if (!semak.ok) throw new Error('targets.mind tidak dijumpai (HTTP ' + semak.status + ')');
@@ -409,7 +573,9 @@ anchor.addEventListener('targetFound', () => {
 });
 anchor.addEventListener('targetLost', () => {
   scanHint.style.display = 'block';
-  // Henti semua video bila poster hilang dari pandangan
+  // Bersihkan semuanya supaya sistem tak tergantung
+  hentiAudio();
+  panel.classList.remove('show');
   document.querySelectorAll('video').forEach(v => v.pause());
 });
 </script>
