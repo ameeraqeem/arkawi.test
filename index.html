@@ -186,6 +186,18 @@ const LOKASI = [
     nama:"Kubang Badak BioGeoTrail",
     info:"Denai warisan yang menggabungkan bakau, batuan purba dan sejarah tempatan — termasuk tapak penempatan awal masyarakat Thai di Langkawi.",
     model:"", saiz:0.1, audio:"" },
+  { id:"kilim-geoforest", x:-0.04, y:-0.27, warna:"#06d6a0",
+    nama:"Kilim Karst Geoforest Park",
+    info:"Ekosistem bakau yang kaya dan landskap karst yang menakjubkan. Bukit-bukit batu kapur di sini terbentuk dari dasar laut purba yang terangkat berjuta tahun dahulu.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"batuan-purba", x:0.37, y:-0.27, warna:"#8d5a2b",
+    nama:"Ancient Rock Formations",
+    info:"Batuan Kambrium berusia lebih 550 juta tahun boleh ditemui di seluruh Langkawi — bukti hidup bahawa kepulauan ini antara daratan tertua di Asia Tenggara.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"skycab-skybridge", x:-0.15, y:0.17, warna:"#ef476f",
+    nama:"Langkawi SkyCab & SkyBridge",
+    info:"Kereta kabel panoramik membawa pengunjung ke jambatan lengkung yang tergantung megah di atas hutan hujan — antara jambatan pejalan kaki lengkung terpanjang di dunia.",
+    model:"", saiz:0.1, audio:"" },
 ];
 
 /* ===================== JANA HOTSPOT + MODEL 3D ===================== */
@@ -476,12 +488,23 @@ const snapVid = document.getElementById('snapVid');
 let snapJenis = 'foto';
 let perakam = null, klip = [], gelungRakam = null, masaMula = 0, jamId = null;
 
-recBtn.addEventListener('click', () => {
+let strimMik = null;
+
+recBtn.addEventListener('click', async () => {
   if (perakam && perakam.state === 'recording') { hentiRakam(); return; }
 
   const video = kameraVideo();
   const sceneCanvas = sceneEl.canvas;
   if (!video || !sceneCanvas) return;
+
+  // Minta mikrofon — rakam bunyi sekeliling termasuk suara TTS dari speaker.
+  // Jika ditolak, teruskan rakam tanpa bunyi (fallback senyap).
+  strimMik = null;
+  try {
+    strimMik = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false }
+    });
+  } catch(e) { /* pengguna tolak izin — rakam senyap */ }
 
   // Kanvas komposit: kamera + AR + tera, dilukis setiap bingkai
   const W = sceneCanvas.width, H = sceneCanvas.height;
@@ -501,8 +524,11 @@ recBtn.addEventListener('click', () => {
   }
   lukis();
 
-  const strim = komp.captureStream(30);
-  const jenis = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm']
+  const strimKanvas = komp.captureStream(30);
+  const trek = [...strimKanvas.getVideoTracks()];
+  if (strimMik) trek.push(...strimMik.getAudioTracks());
+  const strim = new MediaStream(trek);
+  const jenis = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
     .find(t => MediaRecorder.isTypeSupported(t)) || '';
   perakam = new MediaRecorder(strim, jenis ? { mimeType: jenis } : {});
   klip = [];
@@ -532,6 +558,7 @@ recBtn.addEventListener('click', () => {
 
 function hentiRakam(){
   if (perakam && perakam.state === 'recording') perakam.stop();
+  if (strimMik) { strimMik.getTracks().forEach(t => t.stop()); strimMik = null; }
   clearInterval(jamId);
   recTimer.style.display = 'none';
   recBtn.textContent = '\ud83c\udfa5';
