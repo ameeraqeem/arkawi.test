@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ARkawi @ BayasGeoHub — Poster Interaktif AR Langkawi UNESCO Global Geopark</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; font-family:'Segoe UI', system-ui, sans-serif; background:#03251f; }
+
+  #startScreen {
+    position:fixed; inset:0; z-index:100;
+    background:linear-gradient(160deg,#03251f 0%,#0a4d3c 60%,#0d6b4f 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px; color:#eafff5;
+  }
+  #startScreen h1 { font-size:2rem; letter-spacing:.5px; margin-bottom:2px; }
+  #startScreen h1 .ar { color:#ffd166; }
+  #startScreen .jenama { font-size:.95rem; color:#7ee8c7; font-weight:600; letter-spacing:2px; margin-bottom:16px; text-transform:uppercase; }
+  #startScreen .kelab { margin-top:26px; font-size:.75rem; opacity:.7; line-height:1.6; }
+  #startScreen p.sub { font-size:.9rem; opacity:.85; margin-bottom:28px; max-width:320px; line-height:1.5; }
+  #startBtn {
+    background:#ffd166; color:#03251f; border:none; border-radius:40px;
+    padding:16px 42px; font-size:1.05rem; font-weight:700; cursor:pointer;
+    box-shadow:0 6px 24px rgba(255,209,102,.35);
+  }
+  #startScreen .hint { margin-top:22px; font-size:.78rem; opacity:.65; max-width:300px; line-height:1.5; }
+
+  #scanHint {
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:rgba(3,37,31,.8); color:#eafff5; padding:10px 18px;
+    border-radius:24px; font-size:.82rem; z-index:20; display:none;
+    backdrop-filter:blur(6px); white-space:nowrap;
+  }
+
+  #infoPanel {
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:rgba(3,37,31,.94); color:#eafff5;
+    border-radius:20px 20px 0 0; padding:20px 22px 26px;
+    transform:translateY(110%); transition:transform .3s ease;
+    backdrop-filter:blur(10px); max-height:55vh; overflow-y:auto;
+  }
+  #infoPanel.show { transform:translateY(0); }
+  #infoPanel h2 { font-size:1.15rem; color:#ffd166; margin-bottom:8px; padding-right:36px; }
+  #infoPanel p { font-size:.9rem; line-height:1.6; opacity:.92; }
+  #closeBtn {
+    position:absolute; top:14px; right:14px; width:32px; height:32px;
+    border-radius:50%; border:none; background:rgba(255,255,255,.12);
+    color:#eafff5; font-size:1rem; cursor:pointer;
+  }
+  #audioBtn {
+    margin-top:14px; background:#0d6b4f; color:#eafff5; border:1px solid rgba(255,255,255,.2);
+    border-radius:30px; padding:10px 22px; font-size:.88rem; cursor:pointer; font-weight:600;
+  }
+  #zoomHint {
+    position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+    color:rgba(234,255,245,.65); font-size:.72rem; z-index:20; display:none;
+    background:rgba(3,37,31,.6); padding:6px 14px; border-radius:16px;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1>🗺️ <span class="ar">AR</span>kawi</h1>
+  <div class="jenama">@ BayasGeoHub</div>
+  <p class="sub">Poster Interaktif AR — Langkawi UNESCO Global Geopark. Halakan kamera ke poster peta dan teroka setiap lokasi dalam 3D, video dan naratif sejarah.</p>
+  <button id="startBtn">▶ Mula Imbas</button>
+  <p class="hint">Benarkan akses kamera apabila diminta. Pastikan poster berada dalam cahaya yang terang.</p>
+  <p class="kelab">Kelab Geopark<br>Sekolah Kebangsaan Bayas, Langkawi</p>
+</div>
+
+<div id="scanHint">📷 Halakan kamera ke poster...</div>
+<div id="zoomHint">👌 Cubit skrin untuk besar / kecilkan</div>
+
+<div id="infoPanel">
+  <button id="closeBtn">✕</button>
+  <h2 id="infoTitle"></h2>
+  <p id="infoDesc"></p>
+  <button id="audioBtn">🔊 Dengar Sejarah</button>
+</div>
+
+<!-- PENTING: gantikan targets.mind dengan fail yang anda compile dari poster -->
+<a-scene id="arScene"
+  mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+  color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: true"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+
+  <a-assets id="assetPool" timeout="30000"></a-assets>
+
+  <a-camera position="0 0 0" look-controls="enabled: false"
+            cursor="fuse: false; rayOrigin: mouse;"
+            raycaster="objects: .hotspot; near: 0.01; far: 1000;"></a-camera>
+
+  <!-- Cahaya supaya model 3D nampak terang -->
+  <a-light type="ambient" intensity="1.1"></a-light>
+  <a-light type="directional" intensity="0.8" position="0.5 1 1"></a-light>
+
+  <a-entity id="posterAnchor" mindar-image-target="targetIndex: 0">
+    <a-entity id="contentGroup" scale="1 1 1"></a-entity>
+  </a-entity>
+</a-scene>
+
+<script>
+/* =====================================================================
+   KONFIGURASI LOKASI + MODEL 3D
+   ---------------------------------------------------------------------
+   model : URL fail .glb (letak dalam folder "models/")
+           Jika kosong "", penanda bulat berdenyut akan digunakan.
+   saiz  : skala model. Mula dengan 0.1 dan laraskan.
+           (Model dari sumber berbeza ada saiz asal berbeza —
+            kalau tak nampak, cuba 0.01 atau 1.0)
+   audio : URL MP3 rakaman. Jika kosong, TTS Bahasa Melayu digunakan.
+   bergerak : true = mainkan animasi DALAMAN fail GLB (sayap kepak,
+              air mengalir dll — jika model itu memang ada animasi).
+              Model statik (cth. Tinkercad) letak false — ia tetap
+              berputar & terapung melalui animasi luaran.
+   video : URL fail MP4 (cth. "video/gua-cerita.mp4"). Jika diisi,
+           satu skrin video terapung muncul di lokasi itu.
+           Tekan skrin = main / henti video (dengan bunyi).
+           Format: MP4 (H.264), 480p-720p, bawah 10MB, 15-30 saat.
+   ===================================================================== */
+const LOKASI = [
+  { id:"machinchang-park", x:-0.22, y:0.23, warna:"#e63946",
+    nama:"Machinchang Cambrian Geoforest Park",
+    info:"Rumah kepada formasi batuan Kambrium purba berusia lebih 550 juta tahun — antara batuan tertua di Asia Tenggara. Di sinilah kisah geologi Malaysia bermula.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"telaga-tujuh", x:0.02, y:0.25, warna:"#457b9d",
+    nama:"Telaga Tujuh Waterfalls",
+    info:"Tujuh lata semula jadi dan kolam menyegarkan. Menurut lagenda, tujuh telaga ini menjadi tempat mandian puteri kayangan.",
+    model:"", saiz:0.1, audio:"", },
+  { id:"gua-cerita", x:0.37, y:0.23, warna:"#f4a261",
+    nama:"Gua Cerita",
+    info:"Gua lagenda yang menyimpan kisah-kisah Langkawi. Tulisan purba pada dinding gua dipercayai berkait dengan sejarah awal kepulauan ini.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"mount-machinchang", x:0.12, y:0.13, warna:"#2a9d8f",
+    nama:"Mount Machinchang",
+    info:"Puncak tertinggi di Langkawi, 708 meter dari aras laut. Gunung ini terbentuk daripada batu pasir Kambrium yang terangkat jutaan tahun dahulu.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"discovery-centre", x:0.35, y:0.08, warna:"#ffd166",
+    nama:"Langkawi Geopark Discovery Centre",
+    info:"Pusat pameran interaktif mengenai geologi, biodiversiti dan budaya Langkawi. Titik permulaan terbaik untuk memahami geopark ini.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"tanjung-rhu", x:-0.42, y:0.03, warna:"#e76f51",
+    nama:"Tanjung Rhu",
+    info:"Pantai indah dengan pemandangan formasi batuan unik dan pulau-pulau kecil. Pasir putihnya terhasil daripada hakisan batu kapur berjuta tahun.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"kilim-river", x:-0.32, y:-0.07, warna:"#118ab2",
+    nama:"Kilim River",
+    info:"Teroka hutan paya bakau, tebing batu kapur dan hidupan liar menaiki bot. Ekosistem bakau di sini melindungi pantai dan menjadi habitat helang merah.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"dayang-bunting", x:0.30, y:-0.05, warna:"#9b5de5",
+    nama:"Tasik Dayang Bunting",
+    info:"Tasik Dayang Bunting — tasik air tawar dikelilingi bukit batu kapur purba. Lagenda mengisahkan puteri kayangan Mambang Sari yang bersemadi di sini.",
+    model:"", saiz:0.1, audio:"" },
+  { id:"gua-kelawar", x:-0.40, y:-0.26, warna:"#6d597a",
+    nama:"Bat Cave (Gua Kelawar)",
+    info:"Rumah kepada ribuan kelawar dalam gua batu kapur yang menakjubkan. Stalaktit dan stalagmit di sini terbentuk titisan demi titisan selama ribuan tahun.",
+    model:"", saiz:0.1, audio:"", },
+  { id:"gua-buaya", x:-0.20, y:-0.27, warna:"#588157",
+    nama:"Crocodile Cave (Gua Buaya)",
+    info:"Gua unik di tepi sungai, dinamakan sempena bentuknya yang menyerupai buaya. Bot boleh melalui gua ini ketika air surut.",
+    model:"", saiz:0.1, audio:"", },
+  { id:"kubang-badak", x:0.18, y:-0.27, warna:"#bc6c25",
+    nama:"Kubang Badak BioGeoTrail",
+    info:"Denai warisan yang menggabungkan bakau, batuan purba dan sejarah tempatan — termasuk tapak penempatan awal masyarakat Thai di Langkawi.",
+    model:"", saiz:0.1, audio:"" },
+];
+
+/* ===================== JANA HOTSPOT + MODEL 3D ===================== */
+const group = document.querySelector('#contentGroup');
+const assetPool = document.querySelector('#assetPool');
+
+LOKASI.forEach((lok, i) => {
+  const spot = document.createElement('a-entity');
+  spot.setAttribute('position', `${lok.x} ${lok.y} 0.01`);
+
+  /* -------- SKRIN VIDEO TERAPUNG (jika ada) -------- */
+  if (lok.video) {
+    const vid = document.createElement('video');
+    vid.id = `vid-${lok.id}`;
+    vid.src = lok.video;
+    vid.setAttribute('playsinline','');
+    vid.setAttribute('webkit-playsinline','');
+    vid.loop = true;
+    vid.preload = 'metadata';
+    vid.crossOrigin = 'anonymous';
+    assetPool.appendChild(vid);
+
+    // Skrin video 16:9 terapung di atas lokasi
+    const layar = document.createElement('a-video');
+    layar.setAttribute('src', `#vid-${lok.id}`);
+    layar.setAttribute('class','hotspot');
+    layar.setAttribute('width','0.28');
+    layar.setAttribute('height','0.158');
+    layar.setAttribute('position','0 0 0.12');
+    layar.setAttribute('scale','0 0 0');
+    layar.setAttribute('animation__grow',
+      `property: scale; from: 0 0 0; to: 1 1 1; dur: 600; delay: ${i*150}; easing: easeOutBack; startEvents: muncul`);
+
+    // Bingkai nipis supaya nampak macam skrin
+    const bingkai = document.createElement('a-plane');
+    bingkai.setAttribute('width','0.30');
+    bingkai.setAttribute('height','0.178');
+    bingkai.setAttribute('position','0 0 0.115');
+    bingkai.setAttribute('color','#03251f');
+    bingkai.setAttribute('opacity','0.9');
+
+    // Ikon play di tengah (hilang bila video bermain)
+    const ikonPlay = document.createElement('a-text');
+    ikonPlay.setAttribute('value','▶');
+    ikonPlay.setAttribute('align','center');
+    ikonPlay.setAttribute('color','#ffd166');
+    ikonPlay.setAttribute('width','1.2');
+    ikonPlay.setAttribute('position','0 0 0.125');
+
+    spot.appendChild(bingkai);
+    spot.appendChild(layar);
+    spot.appendChild(ikonPlay);
+
+    // Tekan skrin = main / henti (tekan = gerak pengguna, jadi bunyi dibenarkan)
+    layar.addEventListener('click', () => {
+      if (vid.paused) {
+        hentiAudio();                       // elak audio & video main serentak
+        document.querySelectorAll('video').forEach(v => v.pause()); // henti video lain
+        vid.play();
+        ikonPlay.setAttribute('visible','false');
+      } else {
+        vid.pause();
+        ikonPlay.setAttribute('visible','true');
+      }
+    });
+  }
+
+  if (lok.model) {
+    /* -------- MODEL 3D --------
+       Preload dalam a-assets supaya lancar */
+    const asset = document.createElement('a-asset-item');
+    asset.setAttribute('id', `mdl-${lok.id}`);
+    asset.setAttribute('src', lok.model);
+    assetPool.appendChild(asset);
+
+    const mdl = document.createElement('a-gltf-model');
+    mdl.setAttribute('src', `#mdl-${lok.id}`);
+    mdl.setAttribute('class','hotspot');
+    mdl.dataset.id = lok.id;
+
+    // Mainkan animasi DALAMAN fail GLB (sayap kepak, air mengalir dll)
+    if (lok.bergerak) {
+      mdl.setAttribute('animation-mixer', 'clip: *; loop: repeat; timeScale: 1');
+    }
+
+    // Animasi 1: "tumbuh" naik dari poster bila target dikesan
+    mdl.setAttribute('scale','0 0 0');
+    mdl.setAttribute('position','0 0 0');
+    mdl.setAttribute('animation__grow',
+      `property: scale; from: 0 0 0; to: ${lok.saiz} ${lok.saiz} ${lok.saiz}; dur: 800; delay: ${i*150}; easing: easeOutElastic; startEvents: muncul`);
+    mdl.setAttribute('animation__rise',
+      `property: position; from: 0 0 0; to: 0 0 0.06; dur: 800; delay: ${i*150}; easing: easeOutQuad; startEvents: muncul`);
+
+    // Animasi 2: berputar perlahan selama-lamanya
+    mdl.setAttribute('animation__spin',
+      'property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear');
+
+    // Animasi 3: terapung naik-turun
+    mdl.setAttribute('animation__float',
+      'property: position; from: 0 0 0.06; to: 0 0 0.09; dur: 2000; dir: alternate; loop: true; easing: easeInOutSine; delay: 1000');
+
+    spot.appendChild(mdl);
+
+    // Bayang bulat halus di bawah model (nampak lebih "berpijak")
+    const shadow = document.createElement('a-circle');
+    shadow.setAttribute('radius','0.03');
+    shadow.setAttribute('color','#000000');
+    shadow.setAttribute('opacity','0.25');
+    spot.appendChild(shadow);
+
+    mdl.addEventListener('click', () => bukaPanel(lok));
+  } else {
+    /* -------- FALLBACK: penanda bulat berdenyut -------- */
+    const dot = document.createElement('a-circle');
+    dot.setAttribute('class','hotspot');
+    dot.setAttribute('radius','0.022');
+    dot.setAttribute('color', lok.warna);
+    dot.setAttribute('opacity','0.95');
+
+    const ring = document.createElement('a-ring');
+    ring.setAttribute('radius-inner','0.026');
+    ring.setAttribute('radius-outer','0.034');
+    ring.setAttribute('color', lok.warna);
+    ring.setAttribute('opacity','0.6');
+    ring.setAttribute('animation','property: scale; from: 1 1 1; to: 1.6 1.6 1.6; dur: 1200; loop: true; easing: easeOutQuad');
+    ring.setAttribute('animation__fade','property: opacity; from: 0.6; to: 0; dur: 1200; loop: true');
+
+    spot.appendChild(ring);
+    spot.appendChild(dot);
+    dot.addEventListener('click', () => bukaPanel(lok));
+  }
+
+  group.appendChild(spot);
+});
+
+/* ===================== PANEL INFO + AUDIO ===================== */
+const panel = document.getElementById('infoPanel');
+const infoTitle = document.getElementById('infoTitle');
+const infoDesc = document.getElementById('infoDesc');
+const audioBtn = document.getElementById('audioBtn');
+let audioSemasa = null, lokSemasa = null;
+
+function bukaPanel(lok){
+  lokSemasa = lok;
+  infoTitle.textContent = lok.nama;
+  infoDesc.textContent = lok.info;
+  panel.classList.add('show');
+  mainAudio(lok);
+}
+
+function mainAudio(lok){
+  hentiAudio();
+  if (lok.audio) {
+    audioSemasa = new Audio(lok.audio);
+    audioSemasa.play().catch(()=>{});
+    audioBtn.textContent = "⏸ Henti Audio";
+  } else if ('speechSynthesis' in window) {
+    const ucap = new SpeechSynthesisUtterance(lok.nama + ". " + lok.info);
+    ucap.lang = 'ms-MY';
+    ucap.rate = 0.95;
+    speechSynthesis.speak(ucap);
+    audioBtn.textContent = "⏸ Henti Audio";
+  }
+}
+
+function hentiAudio(){
+  if (audioSemasa){ audioSemasa.pause(); audioSemasa = null; }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  audioBtn.textContent = "🔊 Dengar Sejarah";
+}
+
+audioBtn.addEventListener('click', () => {
+  const sedangMain = (audioSemasa && !audioSemasa.paused) || speechSynthesis.speaking;
+  sedangMain ? hentiAudio() : (lokSemasa && mainAudio(lokSemasa));
+});
+
+document.getElementById('closeBtn').addEventListener('click', () => {
+  panel.classList.remove('show');
+  hentiAudio();
+});
+
+/* ===================== PINCH ZOOM ===================== */
+let jarakMula = null, skalaMula = 1, skalaSemasa = 1;
+const MIN_SKALA = 0.5, MAX_SKALA = 3.5;
+
+function jarakDuaJari(t){
+  return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+}
+
+document.addEventListener('touchstart', e => {
+  if (e.touches.length === 2){
+    jarakMula = jarakDuaJari(e.touches);
+    skalaMula = skalaSemasa;
+  }
+}, {passive:true});
+
+document.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && jarakMula){
+    let s = skalaMula * (jarakDuaJari(e.touches) / jarakMula);
+    s = Math.min(MAX_SKALA, Math.max(MIN_SKALA, s));
+    skalaSemasa = s;
+    group.setAttribute('scale', `${s} ${s} ${s}`);
+  }
+}, {passive:true});
+
+document.addEventListener('touchend', () => { jarakMula = null; }, {passive:true});
+
+/* ===================== MULA / TARGET DIKESAN ===================== */
+const sceneEl = document.querySelector('#arScene');
+const startScreen = document.getElementById('startScreen');
+const scanHint = document.getElementById('scanHint');
+const zoomHint = document.getElementById('zoomHint');
+
+document.getElementById('startBtn').addEventListener('click', async () => {
+  startScreen.style.display = 'none';
+  scanHint.style.display = 'block';
+  try {
+    // Semak dulu targets.mind wujud sebelum mula
+    const semak = await fetch('./targets.mind', { method:'HEAD' });
+    if (!semak.ok) throw new Error('targets.mind tidak dijumpai (HTTP ' + semak.status + ')');
+    await sceneEl.systems['mindar-image-system'].start();
+  } catch (err) {
+    scanHint.style.display = 'none';
+    startScreen.style.display = 'flex';
+    startScreen.querySelector('.sub').innerHTML =
+      '⚠️ <b>Ralat:</b> ' + err.message +
+      '<br><br>Semakan: (1) Pastikan fail <b>targets.mind</b> berada dalam folder yang sama dengan index.html. ' +
+      '(2) Benarkan akses kamera. (3) Buka dalam Chrome/Safari, bukan browser dalam WhatsApp/Telegram.';
+  }
+});
+
+const anchor = document.querySelector('#posterAnchor');
+anchor.addEventListener('targetFound', () => {
+  scanHint.style.display = 'none';
+  zoomHint.style.display = 'block';
+  setTimeout(() => zoomHint.style.display = 'none', 4000);
+  // Cetuskan animasi "tumbuh" pada semua model 3D & skrin video
+  document.querySelectorAll('a-gltf-model, a-video').forEach(m => m.emit('muncul'));
+});
+anchor.addEventListener('targetLost', () => {
+  scanHint.style.display = 'block';
+  // Henti semua video bila poster hilang dari pandangan
+  document.querySelectorAll('video').forEach(v => v.pause());
+});
+</script>
+</body>
+</html>
