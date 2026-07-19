@@ -615,6 +615,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const semak = await fetch('./targets.mind', { method:'HEAD' });
     if (!semak.ok) throw new Error('targets.mind tidak dijumpai (HTTP ' + semak.status + ')');
     await sceneEl.systems['mindar-image-system'].start();
+    mulaPengawas();
   } catch (err) {
     scanHint.style.display = 'none';
     startScreen.style.display = 'flex';
@@ -623,6 +624,28 @@ document.getElementById('startBtn').addEventListener('click', async () => {
       '<br><br>Pastikan akses kamera dibenarkan dan buka dalam Chrome/Safari sebenar.';
   }
 });
+
+/* ===== Pengawas kamera beku: pulih automatik ===== */
+let masaVideoLepas = -1, kiraanBeku = 0, pengawasAktif = false;
+function mulaPengawas(){
+  if (pengawasAktif) return;
+  pengawasAktif = true;
+  setInterval(() => {
+    const v = kameraVideo();
+    if (!v) return;
+    if (v.currentTime === masaVideoLepas) {
+      kiraanBeku++;
+      if (kiraanBeku >= 3) { // ±6 saat beku
+        scanHint.textContent = '⟳ Sistem tersekat — memuat semula...';
+        scanHint.style.display = 'block';
+        setTimeout(() => location.reload(), 800);
+      }
+    } else {
+      kiraanBeku = 0;
+    }
+    masaVideoLepas = v.currentTime;
+  }, 2000);
+}
 
 const anchor = document.querySelector('#posterAnchor');
 anchor.addEventListener('targetFound', () => {
@@ -633,6 +656,7 @@ anchor.addEventListener('targetFound', () => {
   document.querySelectorAll('a-gltf-model, a-video').forEach(m => m.emit('muncul'));
 });
 anchor.addEventListener('targetLost', () => {
+  scanHint.textContent = '📷 Halakan semula — pastikan SELURUH poster dalam skrin';
   scanHint.style.display = 'block';
   // Bersihkan semuanya supaya sistem tak tergantung
   hentiAudio();
