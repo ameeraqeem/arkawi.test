@@ -136,68 +136,28 @@
               air mengalir dll — jika model itu memang ada animasi).
               Model statik (cth. Tinkercad) letak false — ia tetap
               berputar & terapung melalui animasi luaran.
+   terbang : true = model BERLEGAR membuat bulatan di udara atas
+             lokasinya (sesuai untuk helang/burung). Gabungkan dengan
+             bergerak:true supaya sayap turut mengepak.
    video : URL fail MP4 (cth. "video/gua-cerita.mp4"). Jika diisi,
            satu skrin video terapung muncul di lokasi itu.
            Tekan skrin = main / henti video (dengan bunyi).
            Format: MP4 (H.264), 480p-720p, bawah 10MB, 15-30 saat.
    ===================================================================== */
 const LOKASI = [
-  { id:"machinchang-park", x:-0.22, y:0.23, warna:"#e63946",
+  { id:"machinchang", x:-0.30, y:0.20, warna:"#e63946",
     nama:"Machinchang Cambrian Geoforest Park",
-    info:"Rumah kepada formasi batuan Kambrium purba berusia lebih 550 juta tahun — antara batuan tertua di Asia Tenggara. Di sinilah kisah geologi Malaysia bermula.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"telaga-tujuh", x:0.02, y:0.25, warna:"#457b9d",
-    nama:"Telaga Tujuh Waterfalls",
-    info:"Tujuh lata semula jadi dan kolam menyegarkan. Menurut lagenda, tujuh telaga ini menjadi tempat mandian puteri kayangan.",
-    model:"", saiz:0.1, audio:"", },
-  { id:"gua-cerita", x:0.37, y:0.23, warna:"#f4a261",
-    nama:"Gua Cerita",
-    info:"Gua lagenda yang menyimpan kisah-kisah Langkawi. Tulisan purba pada dinding gua dipercayai berkait dengan sejarah awal kepulauan ini.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"mount-machinchang", x:0.12, y:0.13, warna:"#2a9d8f",
-    nama:"Mount Machinchang",
-    info:"Puncak tertinggi di Langkawi, 708 meter dari aras laut. Gunung ini terbentuk daripada batu pasir Kambrium yang terangkat jutaan tahun dahulu.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"discovery-centre", x:0.35, y:0.08, warna:"#ffd166",
-    nama:"Langkawi Geopark Discovery Centre",
-    info:"Pusat pameran interaktif mengenai geologi, biodiversiti dan budaya Langkawi. Titik permulaan terbaik untuk memahami geopark ini.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"tanjung-rhu", x:-0.42, y:0.03, warna:"#e76f51",
-    nama:"Tanjung Rhu",
-    info:"Pantai indah dengan pemandangan formasi batuan unik dan pulau-pulau kecil. Pasir putihnya terhasil daripada hakisan batu kapur berjuta tahun.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"kilim-river", x:-0.32, y:-0.07, warna:"#118ab2",
-    nama:"Kilim River",
-    info:"Teroka hutan paya bakau, tebing batu kapur dan hidupan liar menaiki bot. Ekosistem bakau di sini melindungi pantai dan menjadi habitat helang merah.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"dayang-bunting", x:0.30, y:-0.05, warna:"#9b5de5",
-    nama:"Tasik Dayang Bunting",
-    info:"Tasik Dayang Bunting — tasik air tawar dikelilingi bukit batu kapur purba. Lagenda mengisahkan puteri kayangan Mambang Sari yang bersemadi di sini.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"gua-kelawar", x:-0.40, y:-0.26, warna:"#6d597a",
-    nama:"Bat Cave (Gua Kelawar)",
-    info:"Rumah kepada ribuan kelawar dalam gua batu kapur yang menakjubkan. Stalaktit dan stalagmit di sini terbentuk titisan demi titisan selama ribuan tahun.",
-    model:"", saiz:0.1, audio:"", },
-  { id:"gua-buaya", x:-0.20, y:-0.27, warna:"#588157",
-    nama:"Crocodile Cave (Gua Buaya)",
-    info:"Gua unik di tepi sungai, dinamakan sempena bentuknya yang menyerupai buaya. Bot boleh melalui gua ini ketika air surut.",
-    model:"", saiz:0.1, audio:"", },
-  { id:"kubang-badak", x:0.18, y:-0.27, warna:"#bc6c25",
-    nama:"Kubang Badak BioGeoTrail",
-    info:"Denai warisan yang menggabungkan bakau, batuan purba dan sejarah tempatan — termasuk tapak penempatan awal masyarakat Thai di Langkawi.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"kilim-geoforest", x:-0.04, y:-0.27, warna:"#06d6a0",
+    info:"Rumah kepada formasi batuan Kambrium purba berusia lebih 550 juta tahun — antara batuan tertua di Asia Tenggara. Dari Pantai Kok, SkyCab membawa pengunjung ke puncak, dan SkyBridge tergantung megah di atas hutan hujan.",
+    model:"", saiz:0.12, audio:"" },
+  { id:"kilim", x:0.26, y:0.14, warna:"#06d6a0",
     nama:"Kilim Karst Geoforest Park",
-    info:"Ekosistem bakau yang kaya dan landskap karst yang menakjubkan. Bukit-bukit batu kapur di sini terbentuk dari dasar laut purba yang terangkat berjuta tahun dahulu.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"batuan-purba", x:0.37, y:-0.27, warna:"#8d5a2b",
-    nama:"Ancient Rock Formations",
-    info:"Batuan Kambrium berusia lebih 550 juta tahun boleh ditemui di seluruh Langkawi — bukti hidup bahawa kepulauan ini antara daratan tertua di Asia Tenggara.",
-    model:"", saiz:0.1, audio:"" },
-  { id:"skycab-skybridge", x:-0.15, y:0.17, warna:"#ef476f",
-    nama:"Langkawi SkyCab & SkyBridge",
-    info:"Kereta kabel panoramik membawa pengunjung ke jambatan lengkung yang tergantung megah di atas hutan hujan — antara jambatan pejalan kaki lengkung terpanjang di dunia.",
-    model:"", saiz:0.1, audio:"" },
+    info:"Ekosistem bakau yang kaya dan landskap karst batu kapur yang menakjubkan, terbentuk dari dasar laut purba berjuta tahun dahulu. Helang merah meronda di langitnya, dan Gua Kelawar tersembunyi di celah bakau.",
+    model:"models/animated_eagle.glb", saiz:0.0008, audio:"", bergerak:true, terbang:true },
+    // helang: tambah entri berasingan atau guna model:"models/helang.glb", bergerak:true, terbang:true
+  { id:"dayang-bunting", x:-0.03, y:-0.20, warna:"#9b5de5",
+    nama:"Dayang Bunting Marble Geoforest Park",
+    info:"Tasik Dayang Bunting — tasik air tawar terbesar di Langkawi, dikelilingi bukit marmar purba. Lagenda mengisahkan puteri kayangan Mambang Sari yang bersemadi di sini, dan airnya dipercayai membawa tuah.",
+    model:"", saiz:0.12, audio:"" },
 ];
 
 /* ===================== JANA HOTSPOT + MODEL 3D ===================== */
@@ -299,7 +259,21 @@ LOKASI.forEach((lok, i) => {
     mdl.setAttribute('animation__float',
       'property: position; from: 0 0 0.06; to: 0 0 0.09; dur: 2000; dir: alternate; loop: true; easing: easeInOutSine; delay: 1000');
 
-    spot.appendChild(mdl);
+    if (lok.terbang) {
+      // Rig orbit: model berlegar membuat bulatan di atas lokasinya
+      mdl.removeAttribute('animation__spin');
+      mdl.removeAttribute('animation__float');
+      mdl.setAttribute('position', '0.09 0 0');   // jejari legaran
+      mdl.setAttribute('rotation', '0 0 90');      // hadap arah gerakan
+      const orbit = document.createElement('a-entity');
+      orbit.setAttribute('position', '0 0 0.1');   // ketinggian legaran
+      orbit.setAttribute('animation__orbit',
+        'property: rotation; to: 0 0 360; dur: 10000; loop: true; easing: linear');
+      orbit.appendChild(mdl);
+      spot.appendChild(orbit);
+    } else {
+      spot.appendChild(mdl);
+    }
 
     // Bayang bulat halus di bawah model (nampak lebih "berpijak")
     const shadow = document.createElement('a-circle');
