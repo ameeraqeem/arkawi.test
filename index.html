@@ -254,9 +254,12 @@ LOKASI.forEach((lok, i) => {
     mdl.setAttribute('animation__rise',
       `property: position; from: 0 0 0; to: 0 0 0.06; dur: 800; delay: ${i*150}; easing: easeOutQuad; startEvents: muncul`);
 
-    // Animasi 2: berputar perlahan selama-lamanya
+    // Baringkan model: ketinggian menghala KELUAR dari poster (ke arah kamera)
+    mdl.setAttribute('rotation', '90 0 0');
+
+    // Animasi 2: berputar perlahan (gaya meja pusing, kekalkan condongan 90)
     mdl.setAttribute('animation__spin',
-      'property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear');
+      'property: rotation; from: 90 0 0; to: 90 360 0; dur: 8000; loop: true; easing: linear');
 
     // Animasi 3: terapung naik-turun
     mdl.setAttribute('animation__float',
