@@ -155,7 +155,7 @@ const LOKASI = [
   { id:"kilim", x:0.26, y:0.14, warna:"#06d6a0",
     nama:"Kilim Karst Geoforest Park",
     info:"Ekosistem bakau yang kaya dan landskap karst batu kapur yang menakjubkan, terbentuk dari dasar laut purba berjuta tahun dahulu. Helang merah meronda di langitnya, dan Gua Kelawar tersembunyi di celah bakau.",
-    model:"models/kilim_geoforest.glb", saiz:0.1, audio:"", condong:-90 },
+    model:"models/kilim_geoforest.glb", saiz:0.1, audio:"" },
   { id:"helang", x:0.26, y:0.14, warna:"#e07a5f",
     nama:"Helang Merah (Brahminy Kite)",
     info:"Helang merah, ikon Langkawi — malah nama Langkawi sendiri dipercayai berasal dari perkataan helang. Burung pemangsa ini meronda di langit Kilim mencari ikan di permukaan air.",
@@ -249,25 +249,26 @@ LOKASI.forEach((lok, i) => {
       mdl.setAttribute('animation-mixer', 'clip: *; loop: repeat; timeScale: 1');
     }
 
-    // Animasi 1: "tumbuh" naik dari poster bila target dikesan
-    mdl.setAttribute('scale','0 0 0');
-    mdl.setAttribute('position','0 0 0');
-    mdl.setAttribute('animation__grow',
-      `property: scale; from: 0 0 0; to: ${lok.saiz} ${lok.saiz} ${lok.saiz}; dur: 800; delay: ${i*150}; easing: easeOutElastic; startEvents: muncul`);
-    mdl.setAttribute('animation__rise',
-      `property: position; from: 0 0 0; to: 0 0 0.06; dur: 800; delay: ${i*150}; easing: easeOutQuad; startEvents: muncul`);
-
-    // Baringkan model: ketinggian menghala KELUAR dari poster (ke arah kamera)
+    // DUA LAPISAN: pembalut "baring" pegang condongan (pegun),
+    // model di dalamnya berpusing pada paksi tegaknya sendiri.
+    // Ini elak golekan akibat percanggahan paksi Euler.
     const condong = (lok.condong !== undefined) ? lok.condong : 90;
-    mdl.setAttribute('rotation', condong + ' 0 0');
+    const baring = document.createElement('a-entity');
+    baring.setAttribute('rotation', condong + ' 0 0');
 
-    // Animasi 2: berputar perlahan (gaya meja pusing, kekalkan condongan)
-    mdl.setAttribute('animation__spin',
-      `property: rotation; from: ${condong} 0 0; to: ${condong} 360 0; dur: 8000; loop: true; easing: linear`);
-
-    // Animasi 3: terapung naik-turun
-    mdl.setAttribute('animation__float',
+    // Animasi tumbuh & terapung dipindah ke pembalut (ruang poster)
+    baring.setAttribute('scale', '0 0 0');
+    baring.setAttribute('animation__grow',
+      `property: scale; from: 0 0 0; to: 1 1 1; dur: 800; delay: ${i*150}; easing: easeOutElastic; startEvents: muncul`);
+    baring.setAttribute('animation__rise',
+      `property: position; from: 0 0 0; to: 0 0 0.06; dur: 800; delay: ${i*150}; easing: easeOutQuad; startEvents: muncul`);
+    baring.setAttribute('animation__float',
       'property: position; from: 0 0 0.06; to: 0 0 0.09; dur: 2000; dir: alternate; loop: true; easing: easeInOutSine; delay: 1000');
+
+    // Model: saiz tetap, berpusing meja-pusing pada paksi tegak sendiri
+    mdl.setAttribute('scale', `${lok.saiz} ${lok.saiz} ${lok.saiz}`);
+    mdl.setAttribute('animation__spin',
+      'property: rotation; from: 0 0 0; to: 0 360 0; dur: 8000; loop: true; easing: linear');
 
     if (lok.terbang) {
       // Rig orbit: model berlegar membuat bulatan di atas lokasinya
@@ -281,10 +282,16 @@ LOKASI.forEach((lok, i) => {
       orbit.setAttribute('position', '0 0 0.1');   // ketinggian legaran
       orbit.setAttribute('animation__orbit',
         'property: rotation; to: 0 0 360; dur: 10000; loop: true; easing: linear');
+      // Terbang: model terus dalam orbit (skala & condong diurus rig)
+      mdl.setAttribute('scale', `${lok.saiz} ${lok.saiz} ${lok.saiz}`);
+      mdl.removeAttribute('animation__spin');
+      mdl.setAttribute('animation__grow',
+        `property: scale; from: 0 0 0; to: ${lok.saiz} ${lok.saiz} ${lok.saiz}; dur: 800; delay: ${i*150}; easing: easeOutElastic; startEvents: muncul`);
       orbit.appendChild(mdl);
       spot.appendChild(orbit);
     } else {
-      spot.appendChild(mdl);
+      baring.appendChild(mdl);
+      spot.appendChild(baring);
     }
 
     // Bayang bulat halus di bawah model (nampak lebih "berpijak")
