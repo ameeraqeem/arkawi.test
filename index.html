@@ -98,6 +98,8 @@
   <button id="closeBtn">✕</button>
   <h2 id="infoTitle"></h2>
   <p id="infoDesc"></p>
+  <video id="panelVid" controls playsinline webkit-playsinline
+    style="width:100%;max-height:40vh;border-radius:12px;margin-top:12px;display:none;background:#000;"></video>
   <button id="audioBtn">🔊 Dengar Sejarah</button>
 </div>
 
@@ -155,7 +157,7 @@ const LOKASI = [
   { id:"kilim", x:0.26, y:0.14, warna:"#06d6a0",
     nama:"Kilim Karst Geoforest Park",
     info:"Ekosistem bakau yang kaya dan landskap karst batu kapur yang menakjubkan, terbentuk dari dasar laut purba berjuta tahun dahulu. Helang merah meronda di langitnya, dan Gua Kelawar tersembunyi di celah bakau.",
-    model:"models/kilim_geoforest.glb", saiz:0.1, audio:"" },
+    model:"models/kilim_geoforest.glb", saiz:0.1, audio:"", video:"video/kilim.mp4" },
   { id:"helang", x:0.26, y:0.14, warna:"#e07a5f",
     nama:"Helang Merah (Brahminy Kite)",
     info:"Helang merah, ikon Langkawi — malah nama Langkawi sendiri dipercayai berasal dari perkataan helang. Burung pemangsa ini meronda di langit Kilim mencari ikan di permukaan air.",
@@ -174,8 +176,8 @@ LOKASI.forEach((lok, i) => {
   const spot = document.createElement('a-entity');
   spot.setAttribute('position', `${lok.x} ${lok.y} 0.01`);
 
-  /* -------- SKRIN VIDEO TERAPUNG (jika ada) -------- */
-  if (lok.video) {
+  /* -------- (skrin video terapung dilumpuhkan; video kini dalam panel info) -------- */
+  if (false && lok.video) {
     const vid = document.createElement('video');
     vid.id = `vid-${lok.id}`;
     vid.src = lok.video;
@@ -347,12 +349,25 @@ if ('speechSynthesis' in window) {
 }
 let ttsWatchdog = null;
 
+const panelVid = document.getElementById('panelVid');
+
 function bukaPanel(lok){
   lokSemasa = lok;
   infoTitle.textContent = lok.nama;
   infoDesc.textContent = lok.info;
   panel.classList.add('show');
-  mainAudio(lok);
+  if (lok.video) {
+    hentiAudio();
+    panelVid.src = lok.video;
+    panelVid.style.display = 'block';
+    panelVid.play().catch(()=>{}); // jika autoplay disekat, pengguna tekan play
+    audioBtn.style.display = 'none'; // elak audio & video bertindih
+  } else {
+    panelVid.style.display = 'none';
+    panelVid.removeAttribute('src');
+    audioBtn.style.display = '';
+    mainAudio(lok);
+  }
 }
 
 function mainAudio(lok){
@@ -395,6 +410,7 @@ audioBtn.addEventListener('click', () => {
 document.getElementById('closeBtn').addEventListener('click', () => {
   panel.classList.remove('show');
   hentiAudio();
+  panelVid.pause();
 });
 
 /* ===================== TANGKAP GAMBAR ===================== */
