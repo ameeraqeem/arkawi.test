@@ -264,7 +264,10 @@ LOKASI.forEach((lok, i) => {
       mdl.removeAttribute('animation__spin');
       mdl.removeAttribute('animation__float');
       mdl.setAttribute('position', '0.09 0 0');   // jejari legaran
-      mdl.setAttribute('rotation', '0 0 90');      // hadap arah gerakan
+      // -90 pada X = baringkan model (pandangan dari atas, sesuai peta).
+      // Nombor KETIGA = arah kepala; jika helang terbang mengundur/mengiring,
+      // cuba tukar 0 -> 90 / 180 / 270.
+      mdl.setAttribute('rotation', '-90 0 0');
       const orbit = document.createElement('a-entity');
       orbit.setAttribute('position', '0 0 0.1');   // ketinggian legaran
       orbit.setAttribute('animation__orbit',
