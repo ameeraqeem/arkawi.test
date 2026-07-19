@@ -136,6 +136,9 @@
               air mengalir dll — jika model itu memang ada animasi).
               Model statik (cth. Tinkercad) letak false — ia tetap
               berputar & terapung melalui animasi luaran.
+   condong : sudut baring model (lalai 90). Jika model muncul
+             TERBALIK (tanah di atas), letak condong:-90. Setiap
+             sumber model (Meshy/Sketchfab) guna paksi berbeza.
    terbang : true = model BERLEGAR membuat bulatan di udara atas
              lokasinya (sesuai untuk helang/burung). Gabungkan dengan
              bergerak:true supaya sayap turut mengepak.
@@ -152,7 +155,7 @@ const LOKASI = [
   { id:"kilim", x:0.26, y:0.14, warna:"#06d6a0",
     nama:"Kilim Karst Geoforest Park",
     info:"Ekosistem bakau yang kaya dan landskap karst batu kapur yang menakjubkan, terbentuk dari dasar laut purba berjuta tahun dahulu. Helang merah meronda di langitnya, dan Gua Kelawar tersembunyi di celah bakau.",
-    model:"models/kilim_geoforest.glb", saiz:0.1, audio:"" },
+    model:"models/kilim_geoforest.glb", saiz:0.1, audio:"", condong:-90 },
   { id:"helang", x:0.26, y:0.14, warna:"#e07a5f",
     nama:"Helang Merah (Brahminy Kite)",
     info:"Helang merah, ikon Langkawi — malah nama Langkawi sendiri dipercayai berasal dari perkataan helang. Burung pemangsa ini meronda di langit Kilim mencari ikan di permukaan air.",
@@ -255,11 +258,12 @@ LOKASI.forEach((lok, i) => {
       `property: position; from: 0 0 0; to: 0 0 0.06; dur: 800; delay: ${i*150}; easing: easeOutQuad; startEvents: muncul`);
 
     // Baringkan model: ketinggian menghala KELUAR dari poster (ke arah kamera)
-    mdl.setAttribute('rotation', '90 0 0');
+    const condong = (lok.condong !== undefined) ? lok.condong : 90;
+    mdl.setAttribute('rotation', condong + ' 0 0');
 
-    // Animasi 2: berputar perlahan (gaya meja pusing, kekalkan condongan 90)
+    // Animasi 2: berputar perlahan (gaya meja pusing, kekalkan condongan)
     mdl.setAttribute('animation__spin',
-      'property: rotation; from: 90 0 0; to: 90 360 0; dur: 8000; loop: true; easing: linear');
+      `property: rotation; from: ${condong} 0 0; to: ${condong} 360 0; dur: 8000; loop: true; easing: linear`);
 
     // Animasi 3: terapung naik-turun
     mdl.setAttribute('animation__float',
@@ -270,10 +274,9 @@ LOKASI.forEach((lok, i) => {
       mdl.removeAttribute('animation__spin');
       mdl.removeAttribute('animation__float');
       mdl.setAttribute('position', '0.09 0 0');   // jejari legaran
-      // 90 pada X = baringkan model, belakang menghadap kamera.
-      // Jika model lain terbang mengiring/mengundur: laraskan nombor
-      // KEDUA (yaw) kepada 90/180/270.
-      mdl.setAttribute('rotation', '90 0 0');
+      // Baringkan model terbang; condong per-model (lalai 90).
+      // Jika terbang mengiring/mengundur: laraskan nombor KEDUA (yaw).
+      mdl.setAttribute('rotation', ((lok.condong !== undefined) ? lok.condong : 90) + ' 0 0');
       const orbit = document.createElement('a-entity');
       orbit.setAttribute('position', '0 0 0.1');   // ketinggian legaran
       orbit.setAttribute('animation__orbit',
